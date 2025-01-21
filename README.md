@@ -1,106 +1,113 @@
-from machine import Pin, PWM
+#include <Arduino.h>
 
-class MotorController:
-    def __init__(self, motor1_pins, motor2_pins):
-        # Motor 1 setup
-        self.motor1_fwd = Pin(motor1_pins['input1'], Pin.OUT)
-        self.motor1_bwd = Pin(motor1_pins['input2'], Pin.OUT)
-        self.motor1_en = PWM(Pin(motor1_pins['enable']))
-        self.motor1_en.freq(1000)
+// --- Pin Configuration ---
+const int flameSensorPins[] = {25, 26, 27, 14, 12}; // GPIO pins for flame sensors
+const int numFlameSensors = sizeof(flameSensorPins) / sizeof(flameSensorPins[0]);
+const int flameThreshold = 2000; // Threshold for detecting a flame (adjust based on your sensor)
 
-        # Motor 2 setup
-        self.motor2_fwd = Pin(motor2_pins['input1'], Pin.OUT)
-        self.motor2_bwd = Pin(motor2_pins['input2'], Pin.OUT)
-        self.motor2_en = PWM(Pin(motor2_pins['enable']))
-        self.motor2_en.freq(1000)
+// Variables to track time
+unsigned long startTime;
+const unsigned long duration = 60000; // 1 minute = 60000 milliseconds
 
-        self.stop()
+// Function to read values from all sensors
+void readFlameSensors(int values[]) {
+    for (int i = 0; i < numFlameSensors; i++) {
+        values[i] = analogRead(flameSensorPins[i]);
+    }
+}
 
-    def stop(self):
-        self.motor1_fwd.off()
-        self.motor1_bwd.off()
-        self.motor1_en.duty_u16(0)
-        self.motor2_fwd.off()
-        self.motor2_bwd.off()
-        self.motor2_en.duty_u16(0)
+// Function to check if any sensor detects a flame and print the sensor number(s)
+bool detectFlame(int values[]) {
+    bool flameDetected = false;
 
-    def forward(self, speed=30000):
-        self.motor1_fwd.on()
-        self.motor1_bwd.off()
-        self.motor1_en.duty_u16(speed)
-        self.motor2_fwd.on()
-        self.motor2_bwd.off()
-        self.motor2_en.duty_u16(speed)
+    Serial.print("Flame detected by sensor(s): ");
+    for (int i = 0; i < numFlameSensors; i++) {
+        if (values[i] > flameThreshold) {
+            Serial.print(i + 1); // Sensor numbers are 1-based
+            Serial.print(" ");
+            flameDetected = true;
+        }
+    }
 
-    def backward(self, speed=30000):
-        self.motor1_fwd.off()
-        self.motor1_bwd.on()
-        self.motor1_en.duty_u16(speed)
-        self.motor2_fwd.off()
-        self.motor2_bwd.on()
-        self.motor2_en.duty_u16(speed)
+    if (flameDetected) {
+        Serial.println(); // Move to the next line
+    } else {
+        Serial.println("None");
+    }
 
-    def left(self, speed=30000):
-        self.motor1_fwd.off()
-        self.motor1_bwd.on()
-        self.motor1_en.duty_u16(speed)
-        self.motor2_fwd.on()
-        self.motor2_bwd.off()
-        self.motor2_en.duty_u16(speed)
+    return flameDetected;
+}
+const int motorIA = 32; // Connect to IA on L9110
+const int motorIB = 33; // Connect to IB on L9110
+void setup() {
+    Serial.begin(9600);
+    pinMode(motorIA, OUTPUT);
+    pinMode(motorIB, OUTPUT); 
+    // Initialize flame sensor pins as inputs
+    for (int i = 0; i < numFlameSensors; i++) {
+        pinMode(flameSensorPins[i], INPUT);
+    }
 
-    def right(self, speed=30000):
-        self.motor1_fwd.on()
-        self.motor1_bwd.off()
-        self.motor1_en.duty_u16(speed)
-        self.motor2_fwd.off()
-        self.motor2_bwd.on()
-        self.motor2_en.duty_u16(speed)
+    Serial.println("5-channel flame sensor module initialized.");
 
-    def forward_left(self, speed=30000):
-        self.motor1_fwd.on()
-        self.motor1_bwd.off()
-        self.motor1_en.duty_u16(speed // 2)
-        self.motor2_fwd.on()
-        self.motor2_bwd.off()
-        self.motor2_en.duty_u16(speed)
+    // Record the start time
+    startTime = millis();
+}
+void stop_fan(){
+    digitalWrite(motorIA, LOW);
+    digitalWrite(motorIB, LOW);
+}
+void run_fan(){
+ // Set motor to rotate clockwise
+  analogWrite(motorIA, 225); // Full speed
+  digitalWrite(motorIB, LOW);
+  delay(4000);
 
-    def forward_right(self, speed=30000):
-        self.motor1_fwd.on()
-        self.motor1_bwd.off()
-        self.motor1_en.duty_u16(speed)
-        self.motor2_fwd.on()
-        self.motor2_bwd.off()
-        self.motor2_en.duty_u16(speed // 2)
+  
+  //delay(5000); // Run for 5 seconds
 
-    def backward_left(self, speed=30000):
-        self.motor1_fwd.off()
-        self.motor1_bwd.on()
-        self.motor1_en.duty_u16(speed // 2)
-        self.motor2_fwd.off()
-        self.motor2_bwd.on()
-        self.motor2_en.duty_u16(speed)
+  // Set motor to rotate anticlockwise
+  //digitalWrite(motorIA, LOW);
+ // analogWrite(motorIB, 255); // Full speed
+ // delay(2000); // Run for 2 seconds
 
-    def backward_right(self, speed=30000):
-        self.motor1_fwd.off()
-        self.motor1_bwd.on()
-        self.motor1_en.duty_u16(speed)
-        self.motor2_fwd.off()
-        self.motor2_bwd.on()
-        self.motor2_en.duty_u16(speed // 2)
+  // Stop the motor
+  //digitalWrite(motorIA, LOW);
+  //digitalWrite(motorIB, LOW);
+  //delay(1000); // Stop for 1 second*/
 
-    def rotate_left(self, speed=30000):
-        self.motor1_fwd.off()
-        self.motor1_bwd.on()
-        self.motor1_en.duty_u16(speed)
-        self.motor2_fwd.on()
-        self.motor2_bwd.off()
-        self.motor2_en.duty_u16(speed)
+}        
+void loop() {
+    // Check if 1 minute has passed
+    if (millis() - startTime < duration) {
+        int sensorValues[numFlameSensors];
 
-    def rotate_right(self, speed=30000):
-        self.motor1_fwd.on()
-        self.motor1_bwd.off()
-        self.motor1_en.duty_u16(speed)
-        self.motor2_fwd.off()
-        self.motor2_bwd.on()
-        self.motor2_en.duty_u16(speed)
+        // Read sensor values
+        readFlameSensors(sensorValues);
 
+        // Print sensor values to the Serial Monitor
+        Serial.print("Sensor values: ");
+        for (int i = 0; i < numFlameSensors; i++) {
+            Serial.print(sensorValues[i]);
+            Serial.print(" ");
+        }
+        Serial.println();
+
+        // Check if any sensor detects a flame
+        if (detectFlame(sensorValues)) {
+            Serial.println("Flame detected!");
+            run_fan();
+        } else {
+            Serial.println("No flame detected.");
+            stop_fan();
+        }
+        
+        delay(1000); // Small delay to avoid flooding the Serial Monitor
+    } else {
+        // After 1 minute, print that the check is complete
+        Serial.println("Flame detection complete. 1 minute has passed.");
+        // Optional: You could stop the loop or put the ESP32 into a low-power mode here
+        while (true);  // Stop further execution
+    }
+    stop_fan();
+}
