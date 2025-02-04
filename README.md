@@ -37,8 +37,10 @@ bool detectFlame(int values[]) {
 
     return flameDetected;
 }
+
 const int motorIA = 32; // Connect to IA on L9110
 const int motorIB = 33; // Connect to IB on L9110
+
 void setup() {
     Serial.begin(9600);
     pinMode(motorIA, OUTPUT);
@@ -53,61 +55,40 @@ void setup() {
     // Record the start time
     startTime = millis();
 }
-void stop_fan(){
+
+void stop_fan() {
     digitalWrite(motorIA, LOW);
     digitalWrite(motorIB, LOW);
 }
-void run_fan(){
- // Set motor to rotate clockwise
-  analogWrite(motorIA, 225); // Full speed
-  digitalWrite(motorIB, LOW);
-  delay(4000);
 
-  
-  //delay(5000); // Run for 5 seconds
+void run_fan() {
+    // Set motor to rotate clockwise
+    analogWrite(motorIA, 225); // Full speed
+    digitalWrite(motorIB, LOW);
+    serial.printIn("fan start");
+    delay(4000);
 
-  // Set motor to rotate anticlockwise
-  //digitalWrite(motorIA, LOW);
- // analogWrite(motorIB, 255); // Full speed
- // delay(2000); // Run for 2 seconds
-
-  // Stop the motor
-  //digitalWrite(motorIA, LOW);
-  //digitalWrite(motorIB, LOW);
-  //delay(1000); // Stop for 1 second*/
-
+    // Stop the motor
+    digitalWrite(motorIA, LOW);
+    digitalWrite(motorIB, LOW);
 }        
+
 void loop() {
-    // Check if 1 minute has passed
-    if (millis() - startTime < duration) {
-        int sensorValues[numFlameSensors];
-
-        // Read sensor values
-        readFlameSensors(sensorValues);
-
-        // Print sensor values to the Serial Monitor
-        Serial.print("Sensor values: ");
-        for (int i = 0; i < numFlameSensors; i++) {
-            Serial.print(sensorValues[i]);
-            Serial.print(" ");
-        }
-        Serial.println();
-
-        // Check if any sensor detects a flame
-        if (detectFlame(sensorValues)) {
-            Serial.println("Flame detected!");
-            run_fan();
-        } else {
-            Serial.println("No flame detected.");
-            stop_fan();
-        }
-        
-        delay(1000); // Small delay to avoid flooding the Serial Monitor
+    int sensorValues[numFlameSensors];
+    
+    // Read sensor values
+    readFlameSensors(sensorValues);
+    
+    // Check if flame is detected
+    if (detectFlame(sensorValues)) {
+        Serial.println("Flame detected!");
+        run_fan();
+        stop_fan();  // Stop the fan after flame is detected
+        return;  // Exit the loop after detecting the flame
     } else {
-        // After 1 minute, print that the check is complete
-        Serial.println("Flame detection complete. 1 minute has passed.");
-        // Optional: You could stop the loop or put the ESP32 into a low-power mode here
-        while (true);  // Stop further execution
+        Serial.println("No flame detected.");
+        stop_fan();  // Ensure fan is stopped when no flame is detected
     }
-    stop_fan();
+
+    delay(1000); // Small delay to avoid flooding the Serial Monitor
 }
